@@ -348,17 +348,26 @@
     <p class="step-label">Etapa 1 de 3</p>
     <h1>Seus dados</h1>
     <p class="subtitle">Identifique-se como assessor</p>
-    <div class="input-group">
-      <label>Código do Assessor *</label>
-      <input type="text" id="codAssessor" placeholder="Ex: A123" required>
-      <p class="hint">Formato: A + números (ex: A123)</p>
-      <p class="error" id="errCodAssessor">Formato inválido. Use A + números.</p>
+    <input type="hidden" id="codAssessor">
+    <input type="hidden" id="nomeAssessor">
+    <p style="color: rgba(255,255,255,0.8); font-size: 1rem; margin-bottom: 1rem;">Você já possui código de assessor?</p>
+    <div class="option-grid" id="assessorChoiceGrid">
+      <div class="option-card" onclick="selectHasCodigo(true, this)">
+        <div class="opt-icon">✅</div>
+        <div class="opt-label">Sim, tenho código</div>
+      </div>
+      <div class="option-card" onclick="selectHasCodigo(false, this)">
+        <div class="opt-icon">🆕</div>
+        <div class="opt-label">Ainda não tenho código</div>
+      </div>
     </div>
-    <div class="input-group">
-      <label>Nome do Assessor *</label>
-      <input type="text" id="nomeAssessor" placeholder="Seu nome completo" required>
+    <div class="input-group" id="assessorDropdownGroup" style="display:none;">
+      <label id="assessorDropdownLabel">Selecione seu nome</label>
+      <select id="assessorDropdown" onchange="onAssessorSelect(this)">
+        <option value="">-- Selecione --</option>
+      </select>
     </div>
-    <button class="btn-primary" onclick="validateAssessor()">Continuar</button>
+    <button class="btn-primary" id="btnAssessorContinue" onclick="validateAssessor()" style="display:none;">Continuar</button>
   </div>
 
   <!-- STEP 2: Quantity -->
@@ -535,23 +544,141 @@
     }
   }
 
+  // ====== ASSESSOR DATA ======
+  const ASSESSORS_WITH_CODE = [
+    { name: "Alexandre Barone", code: "A23250" },
+    { name: "Andre Michel Karallas", code: "A97823" },
+    { name: "Anselmo Fernando Vecchi", code: "A23283" },
+    { name: "Felipe de Castro Jardim", code: "A47117" },
+    { name: "Fernando Costa de Araujo", code: "A65298" },
+    { name: "Giovanni Cavenaghi Silva", code: "A1335" },
+    { name: "Maria Eduarda Ferreira Colella", code: "A2491" },
+    { name: "Maria Fernanda Marchini Vidal", code: "A90398" },
+    { name: "Bruno Purchio Maia", code: "A51336" },
+    { name: "Caio Fernandes de Barros", code: "A24260" },
+    { name: "Marcio Marques Paulo", code: "A23301" },
+    { name: "Fabio Pizzolatto Raupp", code: "A29168" },
+    { name: "Fernando Victor Amaro", code: "A68826" },
+    { name: "Bruno Belloti dos Santos", code: "A27418" },
+    { name: "David Mendes Rodrigues", code: "A20182" },
+    { name: "Lilian Samantha Lopes da Silva", code: "A74526" },
+    { name: "Valdeson Japiassu Amaro Batista de Souza", code: "A23037" },
+    { name: "Diogo Jatoba Segabinazzi", code: "A70387" },
+    { name: "Bruno Barros Cerqueira", code: "A32588" },
+    { name: "Fabio Gusman", code: "A35043" },
+    { name: "Carolina Maurina Aver", code: "A91773" },
+    { name: "Camila Mascarenhas de Carvalho Nora", code: "A71550" },
+    { name: "Gabriel Santana de Rezende", code: "A36343" },
+    { name: "Marcio Ferraz Ciconeli", code: "A23877" },
+    { name: "Glenrégis da Silva Machado", code: "A27445" },
+    { name: "Valdeci Carlos Morelli", code: "A96278" },
+    { name: "Felipe Gandolpho Soave Ambrosio", code: "A40149" },
+    { name: "João Tavares Aquino", code: "A27472" },
+    { name: "Leandro Pacovski", code: "A5660" },
+    { name: "Regis Takasse Koketsu", code: "A24868" },
+    { name: "Alisson Nunes Freitas", code: "A30267" },
+    { name: "Antonio José Marinho Bernardo", code: "A74110" },
+    { name: "Catarine Lima do Nascimento", code: "A32564" },
+    { name: "Cristiano Costa da Silva", code: "A25938" },
+    { name: "Flávia Bandeira de Mello", code: "A35153" },
+    { name: "Jailton Panissolo Mendonça", code: "A92631" },
+    { name: "Leonaldo Costa", code: "A31999" },
+    { name: "Luana Carrijo Durade", code: "A74225" },
+    { name: "Luis Fernando Khadour", code: "A68166" },
+    { name: "Patricia Gomes Cavalcante", code: "A95907" },
+    { name: "Gabriel Matheus Greggio", code: "A70412" },
+    { name: "Jordana Mota Martelo Gardin", code: "A92405" },
+    { name: "Letícia Romin Nogueira", code: "A72259" },
+    { name: "Lucas Pucinelli Borges de Souza", code: "A48519" },
+    { name: "Mariane Mayumi Leite Kato", code: "A29351" },
+    { name: "Rodrigo Cristiano Del Basso", code: "A25793" },
+    { name: "Tiago Gouveia do Nascimento", code: "A28903" },
+  ].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+  const ASSESSORS_NO_CODE = [
+    { name: "Gianlucca Pedrão Ciconeli" },
+    { name: "Mayara frauzino dos Santos" },
+    { name: "Timóteo Jin Saito" },
+    { name: "Diogo dos Santos Valim de Almeida" },
+    { name: "Kauã Brunetti Garcia" },
+    { name: "Gleice Carvalho de Oliveira Lopes" },
+    { name: "Aline Cecilia Affonso de Lima" },
+    { name: "Elen Cristina donadon" },
+    { name: "Marcelo Sebastião de Souza" },
+    { name: "Marcelo Vieira de Paula" },
+    { name: "Mariana Cavalini Baldin de Almeida" },
+    { name: "Viviani Ostan Corazin" },
+    { name: "Felippe de Alcalai Pereira" },
+    { name: "Cynthia Ruth de Oliveira Osório" },
+    { name: "Alberto Gonçalves Lorega Da Costa" },
+    { name: "Alexandre Bernardes" },
+    { name: "Vera Lucia Alves de Carvalho" },
+  ].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+  let assessorHasCode = null;
+
   // ====== STEP 1: ASSESSOR ======
+  function selectHasCodigo(hasCodigo, el) {
+    assessorHasCode = hasCodigo;
+
+    // Highlight selected option card
+    document.querySelectorAll('#assessorChoiceGrid .option-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+
+    // Populate dropdown
+    const dropdown = document.getElementById('assessorDropdown');
+    const label = document.getElementById('assessorDropdownLabel');
+    dropdown.innerHTML = '<option value="">-- Selecione --</option>';
+
+    if (hasCodigo) {
+      label.textContent = 'Selecione seu nome';
+      ASSESSORS_WITH_CODE.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(a);
+        opt.textContent = a.name + ' - ' + a.code;
+        dropdown.appendChild(opt);
+      });
+    } else {
+      label.textContent = 'Selecione seu nome';
+      ASSESSORS_NO_CODE.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(a);
+        opt.textContent = a.name;
+        dropdown.appendChild(opt);
+      });
+    }
+
+    // Show dropdown, hide button until selection
+    document.getElementById('assessorDropdownGroup').style.display = 'block';
+    document.getElementById('btnAssessorContinue').style.display = 'none';
+    dropdown.value = '';
+    document.getElementById('codAssessor').value = '';
+    document.getElementById('nomeAssessor').value = '';
+  }
+
+  function onAssessorSelect(selectEl) {
+    if (!selectEl.value) {
+      document.getElementById('btnAssessorContinue').style.display = 'none';
+      document.getElementById('codAssessor').value = '';
+      document.getElementById('nomeAssessor').value = '';
+      return;
+    }
+    const data = JSON.parse(selectEl.value);
+    document.getElementById('nomeAssessor').value = data.name;
+    if (data.code) {
+      document.getElementById('codAssessor').value = data.code;
+    } else {
+      document.getElementById('codAssessor').value = 'SEM_CODIGO';
+    }
+    document.getElementById('btnAssessorContinue').style.display = 'inline-block';
+  }
+
   function validateAssessor() {
     const cod = document.getElementById('codAssessor').value.trim();
     const nome = document.getElementById('nomeAssessor').value.trim();
-    const errEl = document.getElementById('errCodAssessor');
 
-    if (!cod || !/^[Aa]\d+$/.test(cod)) {
-      errEl.style.display = 'block';
-      document.getElementById('codAssessor').style.borderColor = '#ff6b6b';
-      return;
-    }
-    errEl.style.display = 'none';
-    document.getElementById('codAssessor').style.borderColor = '';
-    document.getElementById('codAssessor').value = cod.toUpperCase();
-
-    if (!nome) {
-      alert('Informe seu nome.');
+    if (!nome || !cod) {
+      alert('Selecione seu nome na lista.');
       return;
     }
     showStep(2);
@@ -794,6 +921,12 @@
     document.getElementById('qty').textContent = '1';
     document.getElementById('codAssessor').value = '';
     document.getElementById('nomeAssessor').value = '';
+    // Reset assessor dropdown state
+    assessorHasCode = null;
+    document.querySelectorAll('#assessorChoiceGrid .option-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('assessorDropdownGroup').style.display = 'none';
+    document.getElementById('btnAssessorContinue').style.display = 'none';
+    document.getElementById('assessorDropdown').value = '';
     resetReferralFields();
     showStep(0);
   }

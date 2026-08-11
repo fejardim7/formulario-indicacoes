@@ -80,6 +80,24 @@ tr:last-child td:last-child { border-radius: 0 0 6px 0; }
 
 .section-title { font-size: 18px; font-weight: 600; color: #1E2D54; margin: 24px 0 12px; }
 
+.filters {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+}
+.filters label { font-size: 13px; font-weight: 500; color: #1E2D54; }
+.filters select {
+  padding: 8px 12px; border-radius: 8px; border: 1px solid #d1d5db;
+  font-family: 'Inter', sans-serif; font-size: 13px; color: #1E2D54;
+  background: #fff; cursor: pointer; min-width: 180px;
+  outline: none; transition: border-color 0.2s;
+}
+.filters select:focus { border-color: #D1A771; }
+.btn-clear-filters {
+  background: none; border: 1px solid #d1d5db; color: #6b7280;
+  padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 13px; transition: all 0.2s;
+}
+.btn-clear-filters:hover { border-color: #D1A771; color: #D1A771; }
+
 @media (max-width: 768px) {
   .kpis { grid-template-columns: repeat(2, 1fr); }
   .charts-row { grid-template-columns: 1fr; }
@@ -101,6 +119,19 @@ tr:last-child td:last-child { border-radius: 0 0 6px 0; }
 </div>
 
 <div class="container">
+  <!-- Filters -->
+  <div class="filters">
+    <label>Assessor:</label>
+    <select id="filterAssessor" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+    <label>Produto:</label>
+    <select id="filterProduto" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+    <button class="btn-clear-filters" onclick="clearFilters()">Limpar filtros</button>
+  </div>
+
   <!-- KPIs -->
   <div class="kpis" id="kpis"></div>
 
@@ -217,6 +248,7 @@ const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 
 let chartProduto = null;
 let chartEquipe = null;
+let allData = [];
 
 function parseCSV(csv) {
   const lines = csv.split('\n').filter(l => l.trim());
@@ -307,8 +339,41 @@ async function loadData() {
     statusEl.className = 'status';
   }
 
-  renderDashboard(data);
+  allData = data;
+  populateFilters(data);
+  applyFilters();
   document.getElementById('lastUpdate').textContent = new Date().toLocaleString('pt-BR');
+}
+
+function populateFilters(data) {
+  const assessores = [...new Set(data.map(d => d.nomeAssessor))].sort();
+  const produtos = [...new Set(data.map(d => d.produto))].sort();
+
+  const selAss = document.getElementById('filterAssessor');
+  const selProd = document.getElementById('filterProduto');
+  const prevAss = selAss.value;
+  const prevProd = selProd.value;
+
+  selAss.innerHTML = '<option value="">Todos</option>' + assessores.map(a => `<option value="${a}">${a}</option>`).join('');
+  selProd.innerHTML = '<option value="">Todos</option>' + produtos.map(p => `<option value="${p}">${p}</option>`).join('');
+
+  selAss.value = prevAss;
+  selProd.value = prevProd;
+}
+
+function applyFilters() {
+  const ass = document.getElementById('filterAssessor').value;
+  const prod = document.getElementById('filterProduto').value;
+  let filtered = allData;
+  if (ass) filtered = filtered.filter(d => d.nomeAssessor === ass);
+  if (prod) filtered = filtered.filter(d => d.produto === prod);
+  renderDashboard(filtered);
+}
+
+function clearFilters() {
+  document.getElementById('filterAssessor').value = '';
+  document.getElementById('filterProduto').value = '';
+  applyFilters();
 }
 
 function renderDashboard(data) {

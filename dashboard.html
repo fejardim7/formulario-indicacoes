@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Indicações - K3 Invest</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1E2D54; min-height: 100vh; }
+
+.header {
+  background: linear-gradient(135deg, #1E2D54 0%, #2a3d6b 100%);
+  padding: 24px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header img { height: 40px; }
+.header h1 { color: #D1A771; font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header .status { font-size: 12px; color: rgba(255,255,255,0.7); }
+.header .status.live { color: #4ade80; }
+.btn-refresh {
+  background: rgba(209,167,113,0.15); border: 1px solid rgba(209,167,113,0.3);
+  color: #D1A771; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  transition: all 0.2s;
+}
+.btn-refresh:hover { background: rgba(209,167,113,0.25); }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi {
+  background: #fff; border-radius: 12px; padding: 20px; text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border-top: 3px solid #D1A771;
+}
+.kpi-value { font-size: 32px; font-weight: 700; color: #1E2D54; }
+.kpi-label { font-size: 13px; color: #6b7280; margin-top: 4px; font-weight: 500; }
+.kpi-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.card {
+  background: #fff; border-radius: 12px; padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card-title { font-size: 15px; font-weight: 600; color: #1E2D54; margin-bottom: 16px; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1E2D54; color: #fff; padding: 10px 12px; text-align: left; font-weight: 500; white-space: nowrap; }
+th:first-child { border-radius: 6px 0 0 0; }
+th:last-child { border-radius: 0 6px 0 0; }
+td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; }
+tr:hover td { background: #f9fafb; }
+tr:last-child td:first-child { border-radius: 0 0 0 6px; }
+tr:last-child td:last-child { border-radius: 0 0 6px 0; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 500;
+}
+.badge-seguros { background: #dbeafe; color: #1e40af; }
+.badge-consorcio { background: #fef3c7; color: #92400e; }
+.badge-internacional { background: #d1fae5; color: #065f46; }
+.badge-consultoria { background: #ede9fe; color: #5b21b6; }
+.badge-cambio { background: #fce7f3; color: #9d174d; }
+
+.badge-cliente { background: #d1fae5; color: #065f46; }
+.badge-prospect { background: #fef3c7; color: #92400e; }
+
+.pl-value { font-weight: 600; color: #1E2D54; }
+
+.footer {
+  text-align: center; padding: 20px; color: #9ca3af; font-size: 11px;
+  border-top: 1px solid #e5e7eb; margin-top: 24px;
+}
+
+.section-title { font-size: 18px; font-weight: 600; color: #1E2D54; margin: 24px 0 12px; }
+
+@media (max-width: 768px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .header { flex-direction: column; gap: 12px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <img src="https://raw.githubusercontent.com/fejardim7/formulario-indicacoes/main/k3-logo-branco.png" alt="K3 Invest" onerror="this.style.display='none'">
+    <h1>Dashboard de Indicações</h1>
+  </div>
+  <div class="header-right">
+    <span class="status" id="dataStatus">Carregando...</span>
+    <button class="btn-refresh" onclick="loadData()">Atualizar</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Indicações por Produto</div>
+      <canvas id="chartProduto" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Indicações por Equipe</div>
+      <canvas id="chartEquipe" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- By Team -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Resumo por Equipe</div>
+    <div class="table-wrap" id="tableEquipe"></div>
+  </div>
+
+  <!-- By Assessor -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Resumo por Assessor</div>
+    <div class="table-wrap" id="tableAssessor"></div>
+  </div>
+
+  <!-- Recent Submissions -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Indicações Recentes</div>
+    <div class="table-wrap" id="tableRecentes"></div>
+  </div>
+
+  <div class="footer">
+    K3 Invest &mdash; Dashboard de Indicações &mdash; Atualizado em <span id="lastUpdate">--</span>
+  </div>
+</div>
+
+<script>
+// Assessor → Team mapping
+const TEAM_MAP = {
+  "A44461": "Administrativo", "A70693": "Administrativo",
+  "A41820": "Campinas", "A54613": "Campinas", "A63479": "Campinas",
+  "A65820": "Campinas", "A80197": "Campinas", "A80620": "Campinas",
+  "A71652": "Goiânia", "A73630": "Goiânia", "A88048": "Goiânia",
+  "A89076": "Goiânia", "A96069": "Goiânia",
+  "A41768": "Indaiatuba", "A52085": "Indaiatuba", "A80975": "Indaiatuba",
+  "A81176": "Indaiatuba", "A86614": "Indaiatuba", "A87159": "Indaiatuba",
+  "A95002": "Indaiatuba",
+  "A39397": "Itajaí", "A55296": "Itajaí", "A80133": "Itajaí",
+  "A86667": "Itajaí", "A88153": "Itajaí", "A94665": "Itajaí",
+  "A44614": "Mesa Câmbio",
+  "A49119": "Mesa Proprietária",
+  "A57890": "Pessoa Jurídica", "A86523": "Pessoa Jurídica",
+  "A48875": "Rio de Janeiro", "A70750": "Rio de Janeiro",
+  "A80276": "Rio de Janeiro", "A92406": "Rio de Janeiro",
+  "A23505": "São Paulo PF", "A28903": "São Paulo PF",
+  "A29351": "São Paulo PF", "A33791": "São Paulo PF",
+  "A36723": "São Paulo PF", "A38483": "São Paulo PF",
+  "A42193": "São Paulo PF", "A42668": "São Paulo PF",
+  "A44049": "São Paulo PF", "A45074": "São Paulo PF",
+  "A51670": "São Paulo PF", "A54037": "São Paulo PF",
+  "A55293": "São Paulo PF", "A57887": "São Paulo PF",
+  "A62310": "São Paulo PF", "A65014": "São Paulo PF",
+  "A68174": "São Paulo PF", "A69997": "São Paulo PF",
+  "A70412": "São Paulo PF", "A70502": "São Paulo PF",
+  "A73635": "São Paulo PF", "A77879": "São Paulo PF",
+  "A80975": "São Paulo PF", "A82704": "São Paulo PF",
+  "A85458": "São Paulo PF", "A86048": "São Paulo PF",
+  "A88441": "São Paulo PF", "A89994": "São Paulo PF",
+  "A92405": "São Paulo PF", "A95043": "São Paulo PF",
+  "SEM_CODIGO": "São Paulo PF"
+};
+
+const PRODUCT_COLORS = {
+  'Seguros': '#3b82f6',
+  'Consórcio': '#f59e0b',
+  'Internacional': '#10b981',
+  'Consultoria': '#8b5cf6',
+  'Câmbio': '#ec4899'
+};
+
+const PRODUCT_BADGE = {
+  'Seguros': 'badge-seguros',
+  'Consórcio': 'badge-consorcio',
+  'Internacional': 'badge-internacional',
+  'Consultoria': 'badge-consultoria',
+  'Câmbio': 'badge-cambio'
+};
+
+// Embedded fallback data (captured 11/08/2026)
+const FALLBACK_DATA = [
+  {data:"06/08/2026 14:53:59",produto:"Seguros",codAssessor:"A29351",nomeAssessor:"Mariane Mayumi Leite Kato",tipo:"Prospect",codCliente:"",nomeCliente:"Brigida prospect",pl:"2500000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:"cliente indicação"},
+  {data:"06/08/2026 14:55:43",produto:"Seguros",codAssessor:"A29351",nomeAssessor:"Mariane Mayumi Leite Kato",tipo:"Cliente",codCliente:"",nomeCliente:"Herminio Guerra",pl:"50000000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:"faremos reunião de seguro"},
+  {data:"07/08/2026 09:56:29",produto:"Consórcio",codAssessor:"A70412",nomeAssessor:"Gabriel Matheus Greggio",tipo:"Cliente",codCliente:"2404146",nomeCliente:"",pl:"1800000",seguro:"",contaGlobal:"",valorMapeado:"",consorcio:"Imóvel",obs:"Busca de compra de Fazenda"},
+  {data:"07/08/2026 09:57:38",produto:"Consórcio",codAssessor:"A70412",nomeAssessor:"Gabriel Matheus Greggio",tipo:"Cliente",codCliente:"4612907",nomeCliente:"",pl:"1000000",seguro:"",contaGlobal:"",valorMapeado:"",consorcio:"Imóvel",obs:"Compra de imóvel para clínica"},
+  {data:"10/08/2026 14:01:37",produto:"Seguros",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19697466",nomeCliente:"",pl:"2000000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"10/08/2026 14:02:44",produto:"Seguros",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19682553",nomeCliente:"",pl:"5000000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"10/08/2026 14:03:35",produto:"Seguros",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19792060",nomeCliente:"",pl:"20000000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"10/08/2026 14:12:56",produto:"Seguros",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19626496",nomeCliente:"",pl:"3000000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"10/08/2026 14:14:01",produto:"Internacional",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19626496",nomeCliente:"",pl:"5000000",seguro:"",contaGlobal:"Não",valorMapeado:"",consorcio:"",obs:""},
+  {data:"10/08/2026 14:15:26",produto:"Consórcio",codAssessor:"SEM_CODIGO",nomeAssessor:"Vera Lucia Alves de Carvalho",tipo:"Cliente",codCliente:"19703150",nomeCliente:"",pl:"2000000",seguro:"",contaGlobal:"",valorMapeado:"",consorcio:"Outros",obs:""},
+  {data:"11/08/2026 15:17:38",produto:"Seguros",codAssessor:"A92405",nomeAssessor:"Jordana Mota Martelo Gardin",tipo:"Cliente",codCliente:"2001426",nomeCliente:"",pl:"20000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"11/08/2026 15:18:20",produto:"Consórcio",codAssessor:"A92405",nomeAssessor:"Jordana Mota Martelo Gardin",tipo:"Prospect",codCliente:"",nomeCliente:"valentim luque",pl:"600000",seguro:"",contaGlobal:"",valorMapeado:"",consorcio:"Imóvel",obs:""},
+  {data:"11/08/2026 15:18:51",produto:"Seguros",codAssessor:"A92405",nomeAssessor:"Jordana Mota Martelo Gardin",tipo:"Cliente",codCliente:"",nomeCliente:"Alessandra",pl:"10000",seguro:"R1",contaGlobal:"",valorMapeado:"",consorcio:"",obs:""},
+  {data:"11/08/2026 15:19:43",produto:"Consórcio",codAssessor:"A28903",nomeAssessor:"Tiago Gouveia do Nascimento",tipo:"Cliente",codCliente:"3670931",nomeCliente:"",pl:"400000",seguro:"",contaGlobal:"",valorMapeado:"",consorcio:"Imóvel",obs:""},
+  {data:"11/08/2026 15:30:04",produto:"Consultoria",codAssessor:"A28903",nomeAssessor:"Tiago Gouveia do Nascimento",tipo:"Cliente",codCliente:"3779013",nomeCliente:"",pl:"9600000",seguro:"",contaGlobal:"",valorMapeado:"3000000",consorcio:"",obs:""},
+  {data:"11/08/2026 15:31:54",produto:"Internacional",codAssessor:"A28903",nomeAssessor:"Tiago Gouveia do Nascimento",tipo:"Cliente",codCliente:"3779013",nomeCliente:"",pl:"2800000",seguro:"",contaGlobal:"Sim",valorMapeado:"",consorcio:"",obs:""}
+];
+
+const SHEET_ID = '14hljGdShku84t5S-EBW0tXeMinQs6kQXuxUaDMlDCHs';
+const GID = '2035181026';
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+let chartProduto = null;
+let chartEquipe = null;
+
+function parseCSV(csv) {
+  const lines = csv.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (cols.length < 5) continue;
+    rows.push({
+      data: cols[0] || '',
+      produto: cols[1] || '',
+      codAssessor: cols[2] || '',
+      nomeAssessor: cols[3] || '',
+      tipo: cols[4] || '',
+      codCliente: cols[5] || '',
+      nomeCliente: cols[6] || '',
+      pl: (cols[7] || '').replace(/[R$\s.]/g, '').replace(',', '.') || '0',
+      seguro: cols[8] || '',
+      contaGlobal: cols[9] || '',
+      valorMapeado: cols[10] || '',
+      consorcio: cols[11] || '',
+      obs: cols[12] || ''
+    });
+  }
+  return rows;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') {
+      if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (line[i] === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += line[i];
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function formatPL(val) {
+  const n = parseFloat(val);
+  if (isNaN(n) || n === 0) return '-';
+  if (n >= 1000000) return 'R$ ' + (n/1000000).toFixed(1).replace('.', ',') + 'M';
+  if (n >= 1000) return 'R$ ' + (n/1000).toFixed(0) + 'K';
+  return 'R$ ' + n.toLocaleString('pt-BR');
+}
+
+function formatPLFull(val) {
+  const n = parseFloat(val);
+  if (isNaN(n) || n === 0) return '-';
+  return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+
+function getTeam(codAssessor, nomeAssessor) {
+  if (TEAM_MAP[codAssessor]) return TEAM_MAP[codAssessor];
+  return 'Sem equipe';
+}
+
+async function loadData() {
+  const statusEl = document.getElementById('dataStatus');
+  statusEl.textContent = 'Carregando...';
+  statusEl.className = 'status';
+
+  let data = null;
+  try {
+    const resp = await fetch(GVIZ_URL);
+    if (resp.ok) {
+      const csv = await resp.text();
+      const parsed = parseCSV(csv);
+      if (parsed.length > 0) {
+        data = parsed;
+        statusEl.textContent = 'Dados ao vivo da planilha';
+        statusEl.className = 'status live';
+      }
+    }
+  } catch(e) {}
+
+  if (!data) {
+    data = FALLBACK_DATA;
+    statusEl.textContent = 'Dados locais (planilha não publicada)';
+    statusEl.className = 'status';
+  }
+
+  renderDashboard(data);
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleString('pt-BR');
+}
+
+function renderDashboard(data) {
+  // KPIs
+  const totalIndicacoes = data.length;
+  const assessores = new Set(data.map(d => d.nomeAssessor));
+  const produtos = new Set(data.map(d => d.produto));
+  const totalPL = data.reduce((s, d) => s + (parseFloat(d.pl) || 0), 0);
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-value">${totalIndicacoes}</div><div class="kpi-label">Total de Indicações</div></div>
+    <div class="kpi"><div class="kpi-value">${assessores.size}</div><div class="kpi-label">Assessores Ativos</div></div>
+    <div class="kpi"><div class="kpi-value">${produtos.size}</div><div class="kpi-label">Produtos</div></div>
+    <div class="kpi"><div class="kpi-value">${formatPL(totalPL)}</div><div class="kpi-label">PL Total Indicado</div></div>
+  `;
+
+  // Chart: by product
+  const byProduct = {};
+  data.forEach(d => { byProduct[d.produto] = (byProduct[d.produto] || 0) + 1; });
+  const prodLabels = Object.keys(byProduct).sort((a,b) => byProduct[b] - byProduct[a]);
+  const prodValues = prodLabels.map(l => byProduct[l]);
+  const prodColors = prodLabels.map(l => PRODUCT_COLORS[l] || '#6b7280');
+
+  if (chartProduto) chartProduto.destroy();
+  chartProduto = new Chart(document.getElementById('chartProduto'), {
+    type: 'doughnut',
+    data: { labels: prodLabels, datasets: [{ data: prodValues, backgroundColor: prodColors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { family: 'Inter', size: 12 } } } }
+    }
+  });
+
+  // Chart: by team
+  const byTeam = {};
+  data.forEach(d => {
+    const team = getTeam(d.codAssessor, d.nomeAssessor);
+    byTeam[team] = (byTeam[team] || 0) + 1;
+  });
+  const teamLabels = Object.keys(byTeam).sort((a,b) => byTeam[b] - byTeam[a]);
+  const teamValues = teamLabels.map(l => byTeam[l]);
+
+  if (chartEquipe) chartEquipe.destroy();
+  chartEquipe = new Chart(document.getElementById('chartEquipe'), {
+    type: 'bar',
+    data: {
+      labels: teamLabels,
+      datasets: [{ data: teamValues, backgroundColor: '#D1A771', borderRadius: 6, barThickness: 28 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 12 }, stepSize: 1 } },
+        y: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 12 } } }
+      }
+    }
+  });
+
+  // Table: by team
+  const teamStats = {};
+  data.forEach(d => {
+    const team = getTeam(d.codAssessor, d.nomeAssessor);
+    if (!teamStats[team]) teamStats[team] = { count: 0, pl: 0, assessores: new Set(), produtos: new Set() };
+    teamStats[team].count++;
+    teamStats[team].pl += parseFloat(d.pl) || 0;
+    teamStats[team].assessores.add(d.nomeAssessor);
+    teamStats[team].produtos.add(d.produto);
+  });
+  const teamRows = Object.entries(teamStats).sort((a,b) => b[1].count - a[1].count);
+  document.getElementById('tableEquipe').innerHTML = `<table>
+    <tr><th>Equipe</th><th>Indicações</th><th>Assessores</th><th>Produtos</th><th>PL Total</th></tr>
+    ${teamRows.map(([t, s]) => `<tr>
+      <td><strong>${t}</strong></td>
+      <td>${s.count}</td>
+      <td>${s.assessores.size}</td>
+      <td>${[...s.produtos].map(p => `<span class="badge ${PRODUCT_BADGE[p]||''}">${p}</span>`).join(' ')}</td>
+      <td class="pl-value">${formatPLFull(s.pl)}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  // Table: by assessor
+  const assStats = {};
+  data.forEach(d => {
+    const key = d.nomeAssessor;
+    if (!assStats[key]) assStats[key] = { cod: d.codAssessor, equipe: getTeam(d.codAssessor, d.nomeAssessor), count: 0, pl: 0, produtos: {} };
+    assStats[key].count++;
+    assStats[key].pl += parseFloat(d.pl) || 0;
+    assStats[key].produtos[d.produto] = (assStats[key].produtos[d.produto] || 0) + 1;
+  });
+  const assRows = Object.entries(assStats).sort((a,b) => b[1].count - a[1].count);
+  document.getElementById('tableAssessor').innerHTML = `<table>
+    <tr><th>Assessor</th><th>Código</th><th>Equipe</th><th>Indicações</th><th>Produtos</th><th>PL Total</th></tr>
+    ${assRows.map(([name, s]) => `<tr>
+      <td><strong>${name}</strong></td>
+      <td>${s.cod}</td>
+      <td>${s.equipe}</td>
+      <td>${s.count}</td>
+      <td>${Object.entries(s.produtos).map(([p,c]) => `<span class="badge ${PRODUCT_BADGE[p]||''}">${p} (${c})</span>`).join(' ')}</td>
+      <td class="pl-value">${formatPLFull(s.pl)}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  // Table: recent submissions (hide client names)
+  const recent = [...data].reverse();
+  document.getElementById('tableRecentes').innerHTML = `<table>
+    <tr><th>Data</th><th>Produto</th><th>Assessor</th><th>Tipo</th><th>Cód. Cliente</th><th>PL Aprox.</th><th>Detalhes</th></tr>
+    ${recent.map(d => {
+      let details = [];
+      if (d.seguro) details.push('Seguro: ' + d.seguro);
+      if (d.consorcio) details.push('Consórcio: ' + d.consorcio);
+      if (d.contaGlobal) details.push('Conta Global: ' + d.contaGlobal);
+      if (d.valorMapeado) details.push('Mapeado: ' + formatPL(d.valorMapeado));
+      return `<tr>
+        <td style="white-space:nowrap">${d.data.split(' ')[0] || d.data}</td>
+        <td><span class="badge ${PRODUCT_BADGE[d.produto]||''}">${d.produto}</span></td>
+        <td>${d.nomeAssessor}</td>
+        <td><span class="badge ${d.tipo === 'Cliente' ? 'badge-cliente' : 'badge-prospect'}">${d.tipo}</span></td>
+        <td>${d.codCliente || '-'}</td>
+        <td class="pl-value">${formatPLFull(d.pl)}</td>
+        <td style="font-size:11px;color:#6b7280">${details.join(' | ') || '-'}</td>
+      </tr>`;
+    }).join('')}
+  </table>`;
+}
+
+// Initial load
+loadData();
+</script>
+</body>
+</html>

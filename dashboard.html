@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard de Indicações - K3 Invest</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -108,11 +108,11 @@ tr:last-child td:last-child { border-radius: 0 0 6px 0; }
   <div class="charts-row">
     <div class="card">
       <div class="card-title">Indicações por Produto</div>
-      <canvas id="chartProduto" height="220"></canvas>
+      <div style="position:relative;height:300px;"><canvas id="chartProduto"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Indicações por Equipe</div>
-      <canvas id="chartEquipe" height="220"></canvas>
+      <div style="position:relative;height:300px;"><canvas id="chartEquipe"></canvas></div>
     </div>
   </div>
 
